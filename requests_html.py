@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import traceback
 from urllib.parse import urlparse, urlunparse, urljoin
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures._base import TimeoutError
@@ -508,21 +509,21 @@ class HTML(BaseParser):
                             content: Optional[str], timeout: Union[float, int], keep_page: bool, cookies: list = [{}]):
         """ Handle page creation and js rendering. Internal use for render/arender methods. """
         try:
-            page = await self.browser.newPage()
+            page = await self.browser.new_page()
 
             # Wait before rendering the page, to prevent timeouts.
             await asyncio.sleep(wait)
 
-            if cookies:
-                for cookie in cookies:
-                    if cookie:
-                        await page.setCookie(cookie)
+            #if cookies:
+            #    for cookie in cookies:
+            #        if cookie:
+            #            await page.setCookie(cookie)
 
             # Load the given page (GET request, obviously.)
             if reload:
-                await page.goto(url, options={'timeout': int(timeout * 1000)})
+                await page.goto(url, timeout=timeout*1000)
             else:
-                await page.goto(f'data:text/html,{self.html}', options={'timeout': int(timeout * 1000)})
+                await page.goto(f'data:text/html,{self.html}', timeout=timeout*1000)
 
             result = None
             if script:
@@ -667,12 +668,19 @@ class HTML(BaseParser):
         for i in range(retries):
             if not content:
                 try:
-
-                    content, result, page = self.session.loop.run_until_complete(
-                        self._async_render(url=self.url, script=script, sleep=sleep, wait=wait, content=self.html,
-                                           reload=reload, scrolldown=scrolldown, timeout=timeout, keep_page=keep_page,
-                                           cookies=cookies))
-                except TypeError:
+                    content, result, page_info = self.session._execute_render(
+                        url=self.url,  # Or pass specific url if needed
+                        script=script,
+                        sleep=sleep,
+                        wait=wait,
+                        content=self.html,  # Or pass specific content
+                        reload=reload,
+                        scrolldown=scrolldown,
+                        timeout=timeout,
+                        keep_page=keep_page,
+                        cookies=cookies
+                    )
+                except TypeError as e:
                     pass
             else:
                 break
@@ -1011,39 +1019,38 @@ class HTMLSession(BaseSession):
         # Simplest is just to run the async property getter every time.
         # More efficient might store a sync flag, but adds complexity.
         if not (hasattr(self, "_browser") and self._browser):
-             print("HTMLSession: Browser not cached, running async getter...")
-             try:
-                  # Run the async property getter using asyncio.run
-                  # This handles loop creation/destruction for this call.
-                  _ = asyncio.run(super().browser) # Call async property, result stored in self._browser
-             except RuntimeError as e:
-                  if "cannot be called from a running event loop" in str(e):
-                       raise RuntimeError(
-                           "Cannot initialize browser from within an existing asyncio event loop using HTMLSession. "
-                           "Use an asynchronous session/client instead."
-                       ) from e
-                  else:
-                       raise
-             print("HTMLSession: Browser ready.")
+            print("HTMLSession: Browser not cached, running async getter...")
+            try:
+                # Run the async property getter using asyncio.run
+                # This handles loop creation/destruction for this call.
+                _ = asyncio.run(super().browser)  # Call async property, result stored in self._browser
+            except RuntimeError as e:
+                if "cannot be called from a running event loop" in str(e):
+                    raise RuntimeError(
+                        "Cannot initialize browser from within an existing asyncio event loop using HTMLSession. "
+                        "Use an asynchronous session/client instead."
+                    ) from e
+                else:
+                    raise
+            print("HTMLSession: Browser ready.")
         # The async property call above ensures self._browser is set
         return self._browser
-
 
     def close(self):
         """ Synchronously close the browser and Playwright instance. """
         print("HTMLSession: Closing session...")
         try:
-             # Run the async close method from BaseSession
-             asyncio.run(super().close())
+            # Run the async close method from BaseSession
+            asyncio.run(super().close())
         except RuntimeError as e:
-             if "cannot be called from a running event loop" in str(e):
-                  # Less critical to raise here, but indicates potential issue if called from async code
-                  print("Warning: close() called from within an existing event loop.")
-                  # Attempt manual cleanup if possible/needed, or just log
-             else:
-                  raise # Re-raise other runtime errors
+            if "cannot be called from a running event loop" in str(e):
+                # Less critical to raise here, but indicates potential issue if called from async code
+                print("Warning: close() called from within an existing event loop.")
+                # Attempt manual cleanup if possible/needed, or just log
+            else:
+                raise  # Re-raise other runtime errors
         except Exception as e:
-             print(f"Error during HTMLSession close: {e}")
+            print(f"Error during HTMLSession close: {e}")
         # Ensure requests.Session.close is called even if BaseSession async close fails
         # super(BaseSession, self).close() # Call parent's close if BaseSession didn't already
 
@@ -1056,19 +1063,20 @@ class HTMLSession(BaseSession):
         print("HTMLSession: Executing render...")
         # Ensure browser is launched by accessing the property.
         # The property itself now uses asyncio.run if needed.
-        _ = self.browser # This ensures self._browser is populated
+        _ = self.browser  # This ensures self._browser is populated
 
         # Now, run the actual async rendering task from BaseSession
         try:
-             return asyncio.run(self._async_render(**kwargs))
+            return asyncio.run(self._async_render(**kwargs))
         except RuntimeError as e:
-             if "cannot be called from a running event loop" in str(e):
-                  raise RuntimeError(
-                      "render() cannot be used inside an existing asyncio event loop. "
-                      "Use an asynchronous session/client or ensure render() is called from a purely synchronous context."
-                  ) from e
-             else:
-                  raise
+            if "cannot be called from a running event loop" in str(e):
+                raise RuntimeError(
+                    "render() cannot be used inside an existing asyncio event loop. "
+                    "Use an asynchronous session/client or ensure render() is called from a purely synchronous context."
+                ) from e
+            else:
+                raise
+
 
 class AsyncHTMLSession(BaseSession):
     """ An async consumable session. """
