@@ -7,9 +7,10 @@ from functools import partial
 from typing import Set, Union, List, MutableMapping, Optional
 
 import lxml_html_clean
-import pyppeteer
 import requests
 import http.cookiejar
+
+from playwright.async_api import Playwright, Browser, async_playwright
 from pyquery import PyQuery
 
 from fake_useragent import UserAgent
@@ -133,7 +134,6 @@ class BaseParser:
             except UnicodeDecodeError:
                 self._encoding = self.default_encoding
 
-
         return self._encoding if self._encoding else self.default_encoding
 
     @encoding.setter
@@ -178,7 +178,8 @@ class BaseParser:
         """
         return self.lxml.text_content()
 
-    def find(self, selector: str = "*", *, containing: _Containing = None, clean: bool = False, first: bool = False, _encoding: str = None) -> _Find:
+    def find(self, selector: str = "*", *, containing: _Containing = None, clean: bool = False, first: bool = False,
+             _encoding: str = None) -> _Find:
         """Given a CSS Selector, returns a list of
         :class:`Element <Element>` objects or a single one.
 
@@ -297,7 +298,8 @@ class BaseParser:
 
                 try:
                     href = link.attrs['href'].strip()
-                    if href and not (href.startswith('#') and self.skip_anchors) and not href.startswith(('javascript:', 'mailto:')):
+                    if href and not (href.startswith('#') and self.skip_anchors) and not href.startswith(
+                            ('javascript:', 'mailto:')):
                         yield href
                 except KeyError:
                     pass
@@ -324,7 +326,6 @@ class BaseParser:
 
         # Link is absolute and complete with scheme; nothing to be done here.
         return link
-
 
     @property
     def absolute_links(self) -> _Links:
@@ -411,7 +412,8 @@ class HTML(BaseParser):
     :param default_encoding: Which encoding to default to.
     """
 
-    def __init__(self, *, session: Union['HTMLSession', 'AsyncHTMLSession'] = None, url: str = DEFAULT_URL, html: _HTML, default_encoding: str = DEFAULT_ENCODING, async_: bool = False) -> None:
+    def __init__(self, *, session: Union['HTMLSession', 'AsyncHTMLSession'] = None, url: str = DEFAULT_URL, html: _HTML,
+                 default_encoding: str = DEFAULT_ENCODING, async_: bool = False) -> None:
 
         # Convert incoming unicode HTML into bytes.
         if isinstance(html, str):
@@ -502,7 +504,8 @@ class HTML(BaseParser):
     def add_next_symbol(self, next_symbol):
         self.next_symbol.append(next_symbol)
 
-    async def _async_render(self, *, url: str, script: str = None, scrolldown, sleep: int, wait: float, reload, content: Optional[str], timeout: Union[float, int], keep_page: bool, cookies: list = [{}]):
+    async def _async_render(self, *, url: str, script: str = None, scrolldown, sleep: int, wait: float, reload,
+                            content: Optional[str], timeout: Union[float, int], keep_page: bool, cookies: list = [{}]):
         """ Handle page creation and js rendering. Internal use for render/arender methods. """
         try:
             page = await self.browser.newPage()
@@ -565,11 +568,14 @@ class HTML(BaseParser):
         # |      * ``secure`` (bool)
         # |      * ``sameSite`` (str): ``'Strict'`` or ``'Lax'``
         cookie_render = {}
+
         def __convert(cookiejar, key):
             try:
-                v = eval ("cookiejar."+key)
-                if not v: kv = ''
-                else: kv = {key: v}
+                v = eval("cookiejar." + key)
+                if not v:
+                    kv = ''
+                else:
+                    kv = {key: v}
             except:
                 kv = ''
             return kv
@@ -600,7 +606,9 @@ class HTML(BaseParser):
                 cookies_render.append(self._convert_cookiejar_to_render(cookie))
         return cookies_render
 
-    def render(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0, reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False, cookies: list = [{}], send_cookies_session: bool = False):
+    def render(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0,
+               reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False, cookies: list = [{}],
+               send_cookies_session: bool = False):
         """Reloads the response in Chromium, and replaces HTML content
         with an updated version, with JavaScript executed.
 
@@ -644,8 +652,6 @@ class HTML(BaseParser):
             >>> r.html.render(script=script)
             {'width': 800, 'height': 600, 'deviceScaleFactor': 1}
 
-        Warning: the first time you run this method, it will download
-        Chromium into your home directory (``~/.pyppeteer``).
         """
 
         self.browser = self.session.browser  # Automatically create a event loop and browser
@@ -656,13 +662,16 @@ class HTML(BaseParser):
             reload = False
 
         if send_cookies_session:
-           cookies = self._convert_cookiesjar_to_render()
+            cookies = self._convert_cookiesjar_to_render()
 
         for i in range(retries):
             if not content:
                 try:
 
-                    content, result, page = self.session.loop.run_until_complete(self._async_render(url=self.url, script=script, sleep=sleep, wait=wait, content=self.html, reload=reload, scrolldown=scrolldown, timeout=timeout, keep_page=keep_page, cookies=cookies))
+                    content, result, page = self.session.loop.run_until_complete(
+                        self._async_render(url=self.url, script=script, sleep=sleep, wait=wait, content=self.html,
+                                           reload=reload, scrolldown=scrolldown, timeout=timeout, keep_page=keep_page,
+                                           cookies=cookies))
                 except TypeError:
                     pass
             else:
@@ -676,7 +685,9 @@ class HTML(BaseParser):
         self.page = page
         return result
 
-    async def arender(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0, reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False, cookies: list = [{}], send_cookies_session: bool = False):
+    async def arender(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0,
+                      reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False,
+                      cookies: list = [{}], send_cookies_session: bool = False):
         """ Async version of render. Takes same parameters. """
 
         self.browser = await self.session.browser
@@ -687,13 +698,16 @@ class HTML(BaseParser):
             reload = False
 
         if send_cookies_session:
-           cookies = self._convert_cookiesjar_to_render()
+            cookies = self._convert_cookiesjar_to_render()
 
         for _ in range(retries):
             if not content:
                 try:
 
-                    content, result, page = await self._async_render(url=self.url, script=script, sleep=sleep, wait=wait, content=self.html, reload=reload, scrolldown=scrolldown, timeout=timeout, keep_page=keep_page, cookies=cookies)
+                    content, result, page = await self._async_render(url=self.url, script=script, sleep=sleep,
+                                                                     wait=wait, content=self.html, reload=reload,
+                                                                     scrolldown=scrolldown, timeout=timeout,
+                                                                     keep_page=keep_page, cookies=cookies)
                 except TypeError:
                     pass
             else:
@@ -754,58 +768,307 @@ def _get_first_or_list(l, first=False):
 
 
 class BaseSession(requests.Session):
-    """ A consumable session, for cookie persistence and connection pooling,
-    amongst other things.
-    """
+    """ Base Session with async Playwright browser capabilities. """
 
-    def __init__(self, mock_browser : bool = True, verify : bool = True,
-                 browser_args : list = ['--no-sandbox']):
+    def __init__(self, mock_browser: bool = True, verify: bool = True,
+                 browser_args: list = ['--no-sandbox']):
         super().__init__()
-
-        # Mock a web browser's user agent.
         if mock_browser:
             self.headers['User-Agent'] = user_agent()
 
+        # Response hook might need adjustment if HTMLResponse structure changes
         self.hooks['response'].append(self.response_hook)
         self.verify = verify
-
         self.__browser_args = browser_args
+        self._playwright: Playwright | None = None
+        self._browser: Browser | None = None
+        self._keep_page_objects = {}  # For handling keep_page if needed
 
-
-    def response_hook(self, response, **kwargs) -> HTMLResponse:
+    def response_hook(self, response, **kwargs):
         """ Change response encoding and replace it by a HTMLResponse. """
-        if not response.encoding:
+        # Make sure HTMLResponse exists and is compatible
+        if hasattr(response, 'encoding') and not response.encoding:
             response.encoding = DEFAULT_ENCODING
         return HTMLResponse._from_response(response, self)
 
-    @property
-    async def browser(self):
-        if not hasattr(self, "_browser"):
-            self._browser = await pyppeteer.launch(ignoreHTTPSErrors=not(self.verify), headless=True, args=self.__browser_args)
+    async def _ensure_browser_launched(self):
+        """Async: Launches Playwright and the browser if not already done."""
+        # Prevent accidental launch if playwright was stopped manually but _playwright wasn't cleared
+        if self._playwright and not getattr(self._playwright.chromium, '_connection', None):  # Heuristic check
+            print("Playwright instance seems stopped, resetting...")
+            self._playwright = None
+            self._browser = None  # Browser is invalid if playwright stopped
 
+        if self._browser and self._browser.is_connected():
+            return
+
+        if not self._playwright:
+            print("Starting Playwright...")
+            self._playwright = await async_playwright().start()
+            print("Playwright started.")
+
+        try:
+            if self._browser and not self._browser.is_connected():
+                print("Browser disconnected, closing old instance...")
+                await self._browser.close()
+                self._browser = None
+
+            if not self._browser:
+                print(f"Launching Chromium browser with args: {self.__browser_args}...")
+                self._browser = await self._playwright.chromium.launch(
+                    headless=True,
+                    args=self.__browser_args
+                    # ignore_https_errors=not self.verify, # Add back if needed
+                )
+                print(f"Browser launched: {self._browser.version}")
+        except Exception as e:
+            print(f"Error launching browser: {e}")
+            if self._playwright:
+                await self._playwright.stop()
+                self._playwright = None
+            raise
+
+    @property
+    async def browser(self) -> Browser:
+        """Async Property: Provides the Playwright browser instance."""
+        await self._ensure_browser_launched()
+        if not self._browser:
+            raise RuntimeError("Failed to initialize Playwright browser.")
         return self._browser
+
+    # This is the core ASYNC rendering logic using Playwright
+    async def _async_render(self, url: str, script: str | None, sleep: int, wait: float, content: str | None,
+                            reload: bool, scrolldown: int | bool, timeout: float, keep_page: bool,
+                            cookies: list | None) -> tuple[str, any, dict]:
+        """Async: Performs the actual browser rendering using Playwright."""
+        browser_instance = await self.browser  # Ensure browser is ready and get it
+        page = None
+        context = None
+        page_key = url or id(content)  # Simple key for keep_page
+
+        try:
+            # Use existing context/page if keep_page was used previously for this URL/content
+            if keep_page and page_key in self._keep_page_objects:
+                page = self._keep_page_objects[page_key]['page']
+                context = self._keep_page_objects[page_key]['context']
+                print(f"Reusing kept page for {page_key}")
+                # Reset potential dialogs or state issues from previous use
+                # await page.reload() # Optional: Force reload on reuse?
+
+            else:
+                # Create a new context for isolation (recommended)
+                context = await browser_instance.new_context(ignore_https_errors=not self.verify)
+                if cookies:
+                    await context.add_cookies(cookies)  # Playwright format: list of dicts
+
+                page = await context.new_page()
+
+            await page.set_default_timeout(timeout * 1000)  # Playwright uses milliseconds
+
+            # Navigation / Content Loading
+            if content and not reload:  # Prioritize content if provided and not reloading
+                print(f"Setting content ({len(content)} bytes)...")
+                await page.set_content(content)
+                # Wait for load state if needed after set_content
+                await page.wait_for_load_state('domcontentloaded')
+            elif url:
+                print(f"Navigating to {url}...")
+                await page.goto(url, wait_until='domcontentloaded')  # or 'load' or 'networkidle'
+            elif not content and not url and not page.url == 'about:blank':
+                # If no url/content provided, maybe reload the existing page if reused?
+                print("Reloading current page...")
+                await page.reload(wait_until='domcontentloaded')
+            elif not content and not url:
+                print("Warning: No URL or content provided for rendering.")
+                return await page.content(), None, {"url": page.url, "title": await page.title()}
+
+            # Handle 'reload' after initial load (only makes sense if loaded via URL)
+            if reload and url and not content:
+                print("Reloading page...")
+                await page.reload(wait_until='domcontentloaded')
+
+            # Handle 'sleep' (fixed delay)
+            if sleep > 0:
+                print(f"Sleeping for {sleep} seconds...")
+                await page.wait_for_timeout(sleep * 1000)
+
+            # Handle 'scrolldown'
+            if scrolldown:
+                print(f"Scrolling down {scrolldown} times...")
+                scroll_count = scrolldown if isinstance(scrolldown, int) else 1  # Default to 1 if True
+                for i in range(scroll_count):
+                    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                    await page.wait_for_timeout(500)  # Wait for potential dynamic content loading
+                    print(f"Scroll {i + 1}/{scroll_count} complete.")
+
+            # Handle 'script' execution (JavaScript)
+            result = None
+            if script:
+                print("Executing script...")
+                result = await page.evaluate(script)
+                print("Script executed.")
+
+            # Handle 'wait' (Interpreting as additional fixed wait after actions)
+            # Playwright's automatic waits are usually better.
+            # If 'wait' meant "wait for element" or "wait for network", use page.wait_for_selector etc.
+            if wait > 0:
+                print(f"Waiting for {wait} seconds...")
+                await page.wait_for_timeout(wait * 1000)
+
+            print("Retrieving page content...")
+            new_content = await page.content()
+            page_info = {"url": page.url, "title": await page.title()}
+            print("Content retrieved.")
+
+            if keep_page:
+                print(f"Keeping page/context for key: {page_key}")
+                # Store page and context; potentially overwrite previous kept page for same key
+                self._keep_page_objects[page_key] = {'page': page, 'context': context}
+            else:
+                # Clean up kept page if it existed but keep_page is now false
+                if page_key in self._keep_page_objects:
+                    print(f"Cleaning up kept page for key: {page_key}")
+                    kp_page = self._keep_page_objects[page_key]['page']
+                    kp_context = self._keep_page_objects[page_key]['context']
+                    if page == kp_page:  # Ensure we are closing the correct one
+                        if kp_page and not kp_page.is_closed(): await kp_page.close()
+                        if kp_context and kp_context.pages:
+                            pass  # Context closes when last page does? Check docs. Or await kp_context.close()?
+                        else:
+                            await kp_context.close()  # Close context if it has no other pages
+                    del self._keep_page_objects[page_key]
+
+            return new_content, result, page_info
+
+        except Exception as e:
+            print(f"Error during async render: {e}")
+            # Ensure cleanup even on error if not keeping page
+            raise  # Re-raise the exception
+        finally:
+            # Close the page and context ONLY if not keeping them
+            if not keep_page:
+                if page and not page.is_closed():
+                    print("Closing page...")
+                    await page.close()
+                if context:  # Context manages pages, closing context closes its pages
+                    print("Closing context...")
+                    await context.close()
+                    print("Context closed.")
+
+    async def close(self):
+        """Async: Closes the browser, kept pages/contexts, and stops Playwright."""
+        print("Closing Playwright Session...")
+
+        # Close any remaining kept pages/contexts
+        print(f"Closing {len(self._keep_page_objects)} kept page(s)/context(s)...")
+        for key, item in list(self._keep_page_objects.items()):
+            page = item.get('page')
+            context = item.get('context')
+            try:
+                if page and not page.is_closed(): await page.close()
+                if context: await context.close()  # Closing context handles its pages
+            except Exception as e:
+                print(f"Error closing kept page/context for key {key}: {e}")
+        self._keep_page_objects.clear()
+
+        # Close the main browser instance
+        if hasattr(self, "_browser") and self._browser:
+            try:
+                print("Closing main browser instance...")
+                await self._browser.close()
+                print("Browser closed.")
+            except Exception as e:
+                print(f"Error closing browser: {e}")
+            self._browser = None
+
+        # Stop the Playwright instance
+        if hasattr(self, "_playwright") and self._playwright:
+            try:
+                print("Stopping Playwright instance...")
+                await self._playwright.stop()
+                print("Playwright instance stopped.")
+            except Exception as e:
+                print(f"Error stopping Playwright: {e}")
+            self._playwright = None
+
+        # Call requests.Session.close()
+        super().close()
+        print("Playwright Session closed.")
 
 
 class HTMLSession(BaseSession):
+    """ Synchronous interface using the async Playwright BaseSession. """
 
     def __init__(self, **kwargs):
-        super(HTMLSession, self).__init__(**kwargs)
+        super().__init__(**kwargs)
+        # No loop management needed here anymore, asyncio.run handles it.
 
     @property
     def browser(self):
-        if not hasattr(self, "_browser"):
-            self.loop = asyncio.get_event_loop()
-            if self.loop.is_running():
-                raise RuntimeError("Cannot use HTMLSession within an existing event loop. Use AsyncHTMLSession instead.")
-            self._browser = self.loop.run_until_complete(super().browser)
+        """Synchronous Property: Gets the browser, launching if needed via asyncio.run."""
+        # Check if already available and connected (synchronously where possible)
+        # Note: self._browser might exist but be disconnected. `is_connected()` check needs async.
+        # Simplest is just to run the async property getter every time.
+        # More efficient might store a sync flag, but adds complexity.
+        if not (hasattr(self, "_browser") and self._browser):
+             print("HTMLSession: Browser not cached, running async getter...")
+             try:
+                  # Run the async property getter using asyncio.run
+                  # This handles loop creation/destruction for this call.
+                  _ = asyncio.run(super().browser) # Call async property, result stored in self._browser
+             except RuntimeError as e:
+                  if "cannot be called from a running event loop" in str(e):
+                       raise RuntimeError(
+                           "Cannot initialize browser from within an existing asyncio event loop using HTMLSession. "
+                           "Use an asynchronous session/client instead."
+                       ) from e
+                  else:
+                       raise
+             print("HTMLSession: Browser ready.")
+        # The async property call above ensures self._browser is set
         return self._browser
 
-    def close(self):
-        """ If a browser was created close it first. """
-        if hasattr(self, "_browser"):
-            self.loop.run_until_complete(self._browser.close())
-        super().close()
 
+    def close(self):
+        """ Synchronously close the browser and Playwright instance. """
+        print("HTMLSession: Closing session...")
+        try:
+             # Run the async close method from BaseSession
+             asyncio.run(super().close())
+        except RuntimeError as e:
+             if "cannot be called from a running event loop" in str(e):
+                  # Less critical to raise here, but indicates potential issue if called from async code
+                  print("Warning: close() called from within an existing event loop.")
+                  # Attempt manual cleanup if possible/needed, or just log
+             else:
+                  raise # Re-raise other runtime errors
+        except Exception as e:
+             print(f"Error during HTMLSession close: {e}")
+        # Ensure requests.Session.close is called even if BaseSession async close fails
+        # super(BaseSession, self).close() # Call parent's close if BaseSession didn't already
+
+    # New method to bridge sync call to async render logic
+    def _execute_render(self, **kwargs):
+        """
+        Synchronous method that ensures the browser is ready and then
+        runs the async rendering logic using asyncio.run.
+        """
+        print("HTMLSession: Executing render...")
+        # Ensure browser is launched by accessing the property.
+        # The property itself now uses asyncio.run if needed.
+        _ = self.browser # This ensures self._browser is populated
+
+        # Now, run the actual async rendering task from BaseSession
+        try:
+             return asyncio.run(self._async_render(**kwargs))
+        except RuntimeError as e:
+             if "cannot be called from a running event loop" in str(e):
+                  raise RuntimeError(
+                      "render() cannot be used inside an existing asyncio event loop. "
+                      "Use an asynchronous session/client or ensure render() is called from a purely synchronous context."
+                  ) from e
+             else:
+                  raise
 
 class AsyncHTMLSession(BaseSession):
     """ An async consumable session. """

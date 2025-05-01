@@ -254,3 +254,10 @@ Installation
     ✨🍰✨
 
 Only **Python 3.6 and above** is supported.
+
+Playwright installation
+=======================
+.. code-block:: shell
+    $ playwright install
+
+For unsupported Linux distributions, see https://github.com/microsoft/playwright/issues/26482

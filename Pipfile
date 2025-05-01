@@ -10,10 +10,11 @@ fake-useragent = "*"
 parse = "*"
 "bs4" = "*"
 "w3lib" = "*"
-pyppeteer = "*"
+playwright = ">=1.52.0"
 "rfc3986" = "*"
 lxml = ">=5.4.0"
 lxml-html-clean = ">=0.4.2"
+
 
 [dev-packages]
 twine = "*"
