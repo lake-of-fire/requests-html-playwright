@@ -531,13 +531,13 @@ class HTML(BaseParser):
 
             if scrolldown:
                 for _ in range(scrolldown):
-                    await page._keyboard.down('PageDown')
+                    await page.keyboard.press('PageDown')
                     await asyncio.sleep(sleep)
             else:
                 await asyncio.sleep(sleep)
 
             if scrolldown:
-                await page._keyboard.up('PageDown')
+                await page.keyboard.press('PageDown')
 
             # Return the content of the page, JavaScript evaluated.
             content = await page.content()
