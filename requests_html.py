@@ -6,13 +6,13 @@ from concurrent.futures._base import TimeoutError
 from functools import partial
 from typing import Set, Union, List, MutableMapping, Optional
 
+import lxml_html_clean
 import pyppeteer
 import requests
 import http.cookiejar
 from pyquery import PyQuery
 
 from fake_useragent import UserAgent
-from lxml.html.clean import Cleaner
 import lxml
 from lxml import etree
 from lxml.html import HtmlElement
@@ -27,7 +27,7 @@ DEFAULT_URL = 'https://example.org/'
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8'
 DEFAULT_NEXT_SYMBOL = ['next', 'more', 'older']
 
-cleaner = Cleaner()
+cleaner = lxml_html_clean.Cleaner()
 cleaner.javascript = True
 cleaner.style = True
 
