@@ -21,7 +21,7 @@ VERSION = '0.10.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'requests', 'pyquery', 'fake-useragent', 'parse', 'beautifulsoup4', 'w3lib', 'pyppeteer>=0.0.14'
+    'requests', 'pyquery', 'fake-useragent', 'parse', 'beautifulsoup4', 'w3lib', 'playwright>=1.52.0', 'lxml>=5.4.0', 'lxml-html-clean>=0.4.2'
 ]
 
 # The rest you shouldn't have to touch too much :)

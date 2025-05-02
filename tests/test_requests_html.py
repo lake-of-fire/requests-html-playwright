@@ -2,8 +2,8 @@ import os
 from functools import partial
 
 import pytest
-from pyppeteer.browser import Browser
-from pyppeteer.page import Page
+from playwright.async_api import Browser
+
 from requests_html import HTMLSession, AsyncHTMLSession, HTML
 from requests_file import FileAdapter
 
