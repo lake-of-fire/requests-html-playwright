@@ -610,10 +610,10 @@ class HTML(BaseParser):
     def render(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0,
                reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False, cookies: list = [{}],
                send_cookies_session: bool = False):
-        """Reloads the response in Chromium, and replaces HTML content
+        """Reloads the response in Firefox, and replaces HTML content
         with an updated version, with JavaScript executed.
 
-        :param retries: The number of times to retry loading the page in Chromium.
+        :param retries: The number of times to retry loading the page in Firefox.
         :param script: JavaScript to execute upon page load (optional).
         :param wait: The number of seconds to wait before loading the page, preventing timeouts (optional).
         :param scrolldown: Integer, if provided, of how many times to page down.
@@ -756,7 +756,7 @@ class HTMLResponse(requests.Response):
 
 def user_agent(style=None) -> _UserAgent:
     """Returns an apparently legit user-agent, if not requested one of a specific
-    style. Defaults to a Chrome-style User-Agent.
+    style. Defaults to a Firefox-style User-Agent.
     """
     global useragent
     if (not useragent) and style:
@@ -1101,7 +1101,7 @@ class AsyncHTMLSession(BaseSession):
         """ If a browser was created close it first. """
         if hasattr(self, "_browser"):
             await self._browser.close()
-        super().close()
+        await super().close()
 
     def run(self, *coros):
         """ Pass in all the coroutines you want to run, it will wrap each one
