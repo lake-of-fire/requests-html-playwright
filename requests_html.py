@@ -803,7 +803,7 @@ class BaseSession(requests.Session):
     async def _ensure_browser_launched(self):
         """Async: Launches Playwright and the browser if not already done."""
         # Prevent accidental launch if playwright was stopped manually but _playwright wasn't cleared
-        if self._playwright and not getattr(self._playwright.chromium, '_connection', None):  # Heuristic check
+        if self._playwright and not getattr(self._playwright.firefox, '_connection', None):  # Heuristic check
             print("Playwright instance seems stopped, resetting...")
             self._playwright = None
             self._browser = None  # Browser is invalid if playwright stopped
@@ -823,14 +823,14 @@ class BaseSession(requests.Session):
                 self._browser = None
 
             if not self._browser:
-                print(f"Launching Chromium browser with args: {self.__browser_args}...")
+                print(f"Launching Firefox browser with args: {self.__browser_args}...")
                 launch_kwargs = {
                     'headless': True,
                     'args': self.__browser_args,
                     # ignore_https_errors=not self.verify, # Add back if needed
                 }
                 launch_kwargs.update(self.__playwright_args)
-                self._browser = await self._playwright.chromium.launch(**launch_kwargs)
+                self._browser = await self._playwright.firefox.launch(**launch_kwargs)
                 print(f"Browser launched: {self._browser.version}")
         except Exception as e:
             print(f"Error launching browser: {e}")
