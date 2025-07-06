@@ -802,11 +802,6 @@ class BaseSession(requests.Session):
 
     async def _ensure_browser_launched(self):
         """Async: Launches Playwright and the browser if not already done."""
-        # Prevent accidental launch if playwright was stopped manually but _playwright wasn't cleared
-        if self._playwright and not getattr(self._playwright.firefox, '_connection', None):  # Heuristic check
-            print("Playwright instance seems stopped, resetting...")
-            self._playwright = None
-            self._browser = None  # Browser is invalid if playwright stopped
 
         if self._browser and self._browser.is_connected():
             return
