@@ -779,7 +779,7 @@ class BaseSession(requests.Session):
     """ Base Session with async Playwright browser capabilities. """
 
     def __init__(self, mock_browser: bool = True, verify: bool = True,
-                 browser_args: list = ['--no-sandbox']):
+                 browser_args: list = ['--no-sandbox'], playwright_args: dict = None):
         super().__init__()
         if mock_browser:
             self.headers['User-Agent'] = user_agent()
@@ -788,6 +788,7 @@ class BaseSession(requests.Session):
         self.hooks['response'].append(self.response_hook)
         self.verify = verify
         self.__browser_args = browser_args
+        self.__playwright_args = playwright_args or {}
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._keep_page_objects = {}  # For handling keep_page if needed
@@ -823,11 +824,13 @@ class BaseSession(requests.Session):
 
             if not self._browser:
                 print(f"Launching Chromium browser with args: {self.__browser_args}...")
-                self._browser = await self._playwright.chromium.launch(
-                    headless=True,
-                    args=self.__browser_args
+                launch_kwargs = {
+                    'headless': True,
+                    'args': self.__browser_args,
                     # ignore_https_errors=not self.verify, # Add back if needed
-                )
+                }
+                launch_kwargs.update(self.__playwright_args)
+                self._browser = await self._playwright.chromium.launch(**launch_kwargs)
                 print(f"Browser launched: {self._browser.version}")
         except Exception as e:
             print(f"Error launching browser: {e}")
