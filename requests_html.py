@@ -812,7 +812,7 @@ class BaseSession(requests.Session):
             print("Playwright started.")
 
         try:
-            if self._browser and not self._browser.is_connected():
+            if hasattr(self, "_browser") and self._browser and not self._browser.is_connected():
                 print("Browser disconnected, closing old instance...")
                 await self._browser.close()
                 self._browser = None
@@ -820,7 +820,6 @@ class BaseSession(requests.Session):
             if not self._browser:
                 print(f"Launching Firefox browser with args: {self.__browser_args}...")
                 launch_kwargs = {
-                    'headless': True,
                     'args': self.__browser_args,
                     # ignore_https_errors=not self.verify, # Add back if needed
                 }
@@ -1099,7 +1098,7 @@ class AsyncHTMLSession(BaseSession):
 
     async def close(self):
         """ If a browser was created close it first. """
-        if hasattr(self, "_browser"):
+        if hasattr(self, "_browser") and self._browser:
             await self._browser.close()
         await super().close()
 
