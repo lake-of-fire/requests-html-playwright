@@ -505,7 +505,7 @@ class HTML(BaseParser):
     def add_next_symbol(self, next_symbol):
         self.next_symbol.append(next_symbol)
 
-    async def _async_render(self, *, url: str, script: str = None, scrolldown, sleep: int, wait: float, reload,
+    async def _async_render(self, *, url: str, script: str = None, scrolldown, sleep: int, wait: float, wait_until: str, reload,
                             content: Optional[str], timeout: Union[float, int], keep_page: bool, cookies: list = [{}]):
         """ Handle page creation and js rendering. Internal use for render/arender methods. """
         try:
@@ -521,9 +521,9 @@ class HTML(BaseParser):
 
             # Load the given page (GET request, obviously.)
             if reload:
-                await page.goto(url, timeout=timeout*1000)
+                await page.goto(url, timeout=timeout*1000, wait_until=wait_until)
             else:
-                await page.goto(f'data:text/html,{self.html}', timeout=timeout*1000)
+                await page.goto(f'data:text/html,{self.html}', timeout=timeout*1000, wait_until=wait_until)
 
             result = None
             if script:
@@ -607,7 +607,7 @@ class HTML(BaseParser):
                 cookies_render.append(self._convert_cookiejar_to_render(cookie))
         return cookies_render
 
-    def render(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0,
+    def render(self, retries: int = 8, script: str = None, wait: float = 0.2, wait_until: str = 'load', scrolldown=False, sleep: int = 0,
                reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False, cookies: list = [{}],
                send_cookies_session: bool = False):
         """Reloads the response in Firefox, and replaces HTML content
@@ -673,6 +673,7 @@ class HTML(BaseParser):
                         script=script,
                         sleep=sleep,
                         wait=wait,
+                        wait_until=wait_until,
                         content=self.html,  # Or pass specific content
                         reload=reload,
                         scrolldown=scrolldown,
@@ -693,7 +694,7 @@ class HTML(BaseParser):
         self.page = page
         return result
 
-    async def arender(self, retries: int = 8, script: str = None, wait: float = 0.2, scrolldown=False, sleep: int = 0,
+    async def arender(self, retries: int = 8, script: str = None, wait: float = 0.2, wait_until: str = 'load', scrolldown=False, sleep: int = 0,
                       reload: bool = True, timeout: Union[float, int] = 8.0, keep_page: bool = False,
                       cookies: list = [{}], send_cookies_session: bool = False):
         """ Async version of render. Takes same parameters. """
@@ -713,7 +714,7 @@ class HTML(BaseParser):
                 try:
 
                     content, result, page = await self._async_render(url=self.url, script=script, sleep=sleep,
-                                                                     wait=wait, content=self.html, reload=reload,
+                                                                     wait=wait, wait_until=wait_until, content=self.html, reload=reload,
                                                                      scrolldown=scrolldown, timeout=timeout,
                                                                      keep_page=keep_page, cookies=cookies)
                 except TypeError:
